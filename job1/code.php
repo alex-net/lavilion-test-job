@@ -1,7 +1,14 @@
 <?php
-
+/**
+ * класс приложения ..
+ */
 class App
 {
+    /**
+     * расположение файла данных ...
+     *
+     * @var        string
+     */
     const FILE_NAME = './job.data';
 
     private string $name, $family, $avatar;
@@ -10,7 +17,6 @@ class App
 
     public function __construct()
     {
-        // print_r($_SERVER);
         session_start();
         $this->name = $this->family = $this->avatar = '';
         $this->loadFromFile();
@@ -31,6 +37,11 @@ class App
         }
     }
 
+    /**
+     * Сохранение даннных в файл
+     *
+     * @return     bool  ( description_of_the_return_value )
+     */
     private function saveData()
     {
         if ($this->errors) {
@@ -50,6 +61,13 @@ class App
         return true;
     }
 
+    /**
+     * Вернуть путьь к каталгу с аватарками .. или пуьб к одной из аватарок
+     *
+     * @param      string  $tail   имя файла запрашиваемой аватарки ..
+     *
+     * @return     string  путь к каталоги или файлу ..
+     */
     private function getFolderForAvarar($tail = null)
     {
         $folder = $_SERVER['DOCUMENT_ROOT'] .  dirname($_SERVER['DOCUMENT_URI']) . '/avatar';
@@ -59,6 +77,11 @@ class App
         return $folder;
     }
 
+    /**
+     * Сохранение загруженного через форму ватара ...
+     *
+     * @return     <type>  ( description_of_the_return_value )
+     */
     private function saveAvatar()
     {
         if (!isset($_FILES['avatar']['error']) || $_FILES['avatar']['error'] != UPLOAD_ERR_OK) {
@@ -78,6 +101,9 @@ class App
         }
     }
 
+    /**
+     * Убийство аватара. без загрузки замены...
+     */
     private function killAvatar()
     {
         $file = $this->getFolderForAvarar($this->avatar);// $_SERVER['DOCUMENT_ROOT'] . '/avatar/' . ;
@@ -87,6 +113,11 @@ class App
         }
     }
 
+    /**
+     * заполнение полей класса из массива $_POST
+     *
+     * @return     bool  true = В случае успешной загрузки
+     */
     private function loadFromPost()
     {
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
@@ -115,11 +146,23 @@ class App
         return true;
     }
 
+    /**
+     * Валидация post-запроса по полю csrf
+     *
+     * @return     bool  True = если всё правильно ..
+     */
     private function csrfValidate()
     {
         return !empty($_POST['csrf']) && !empty($_SESSION['csrf']) &&  base64_encode($_SESSION['csrf']) == $_POST['csrf'];
     }
 
+    /**
+     * получение значений закрытых полей ...
+     *
+     * @param      string  $name   The name
+     *
+     * @return     <type>  ( description_of_the_return_value )
+     */
     public function __get(string $name)
     {
         if ($name == 'avatar' && $this->avatar)  {
@@ -134,7 +177,6 @@ class App
         }
     }
 }
-
 
 $app = new App();
 
