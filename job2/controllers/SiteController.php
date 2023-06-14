@@ -107,4 +107,14 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+
+    /**
+     * Списаок книг на сайте....
+     *
+     * @return     <type>  ( description_of_the_return_value )
+     */
+    public function actionBooks()
+    {
+        return $this->render('books');
+    }
 }
