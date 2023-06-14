@@ -29,6 +29,8 @@ composer.lock
 phpunit.phar
 # local phpunit config
 /phpunit.xml
+# кеш от phpunit
+/*.cache
 
 tests/_output/*
 tests/_support/_generated

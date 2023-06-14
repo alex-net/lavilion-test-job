@@ -10,9 +10,19 @@
             "url": "https://asset-packagist.org"
         }
     ],
+    "scripts": {
+        "test": "phpunit"
+    },
+    "autoload": {
+        "files": ["vendor/yiisoft/yii2/Yii.php"]
+    },
+
     "config": {
         "allow-plugins": {
             "yiisoft/yii2-composer": true
         }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.2"
     }
 }

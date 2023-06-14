@@ -2,38 +2,89 @@
 
 namespace app\models;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
+use yii\base\Model;
+use yii\web\IdentityInterface;
+use yii\db\Query;
+use Yii;
+
+class User extends Model implements IdentityInterface
 {
-    public $id;
-    public $username;
-    public $password;
-    public $authKey;
-    public $accessToken;
+    public $id, $login, $mail;
+    public $pass_hash, $password;
+    public $active, $auth_key, $access_token;
 
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
+    public function rules()
+    {
+        return [
+            [['password', 'login', 'mail'], 'trim'],
+            ['login', 'string', 'max' => 25],
+            ['mail', 'string', 'max' => 50],
+            ['password', 'string'],
+            [['login', 'password', 'mail'], 'required'],
+            ['login', 'existInDb'],
+            ['active', 'boolean'],
+            [['auth_key', 'access_token'], 'default', 'value' => function() {
+                return Yii::$app->security->generateRandomString();
+            }],
+            ['mail', 'email'],
+        ];
+    }
 
+    public function existInDb($attr)
+    {
+        $where = ['and', ['login' => $this->$attr]];
+        if ($this->id) {
+            $where[] = ['not', ['=', 'id', $this->id]];
+        }
+        $q = new Query();
+        $q->from('users');
+        $q->where($where);
+        if ($q->count()) {
+            $this->addError($attr, "Запись с логином {$this->login} уже есть в базе");
+        }
+    }
+
+    public function save()
+    {
+        if (!$this->validate()) {
+            return false;
+        }
+
+        $attrs = $this->getAttributes($this->activeAttributes(), ['password']);
+        if ($this->password) {
+            $attrs['pass_hash'] = Yii::$app->security->generatePasswordHash($this->password);
+        }
+
+        if ($this->id) {
+            Yii::$app->db->createCommand()->update('users', $attrs, ['id' => $this->id])->execute();
+        } else {
+            Yii::$app->db->createCommand()->insert('users', $attrs)->execute();
+            $this->id = Yii::$app->db->lastInsertID;
+        }
+        return true;
+    }
+
+    public function getUsername()
+    {
+        return $this->login;
+    }
+
+    private static function findBy($where)
+    {
+        $q = new Query();
+        $q->from('users');
+        $q->limit(1);
+        $q->where($where);
+        $res = $q->one();
+        return $res ? new static($res) : null;
+    }
 
     /**
      * {@inheritdoc}
      */
     public static function findIdentity($id)
     {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
+        return static::findBy(['id' => $id]);
     }
 
     /**
@@ -41,13 +92,7 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
-        }
-
-        return null;
+        return static::findBy(['access_token' => $token]);
     }
 
     /**
@@ -58,13 +103,7 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public static function findByUsername($username)
     {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
-
-        return null;
+        return static::findBy(['login' => $username]);
     }
 
     /**
@@ -80,7 +119,7 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public function getAuthKey()
     {
-        return $this->authKey;
+        return $this->auth_key;
     }
 
     /**
@@ -99,6 +138,6 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public function validatePassword($password)
     {
-        return $this->password === $password;
+        return Yii::$app->security->validatePassword($password, $this->pass_hash);
     }
 }
